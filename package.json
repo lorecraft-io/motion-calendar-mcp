@@ -7,9 +7,24 @@
   "bin": {
     "motion-calendar-mcp": "src/index.js"
   },
+  "files": [
+    "src/",
+    "bin/",
+    ".env.example",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "start": "node src/index.js",
-    "setup": "node bin/setup.js"
+    "setup": "node bin/setup.js",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "keywords": ["mcp", "motion", "calendar", "claude", "ai", "scheduling", "productivity"],
   "author": "Nathan Davidovich <nate@lorecraft.io>",
@@ -22,5 +37,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.2"
   }
 }
