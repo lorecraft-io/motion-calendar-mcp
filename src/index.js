@@ -8,19 +8,36 @@ import {
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync, writeFileSync } from "node:fs";
+import { validateId, validateDate, validateISODate, validateEnum, validateStringArray, createRateLimiter } from "./validation.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, "../.env") });
+const ENV_PATH = process.env.DOTENV_CONFIG_PATH || resolve(__dirname, "../.env");
+config({ path: ENV_PATH });
 
 const INTERNAL_BASE = "https://internal.usemotion.com";
 const PUBLIC_BASE = "https://api.usemotion.com/v1";
 const FIREBASE_TOKEN_URL = "https://securetoken.googleapis.com/v1/token";
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
-const REFRESH_TOKEN = process.env.FIREBASE_REFRESH_TOKEN;
+let refreshToken = process.env.FIREBASE_REFRESH_TOKEN;
 const USER_ID = process.env.MOTION_USER_ID;
 const MOTION_API_KEY = process.env.MOTION_API_KEY;
 const TIMEZONE = process.env.MOTION_TIMEZONE || "America/New_York";
+
+// Startup validation
+const _requiredVars = { FIREBASE_API_KEY, FIREBASE_REFRESH_TOKEN: refreshToken, MOTION_USER_ID: USER_ID, MOTION_API_KEY };
+const _missingVars = Object.entries(_requiredVars).filter(([, v]) => !v).map(([k]) => k);
+if (_missingVars.length > 0) {
+  console.error(
+    `Missing required environment variables: ${_missingVars.join(", ")}\n` +
+    `Run "npx motion-calendar-mcp setup" or see .env.example for details.`
+  );
+  process.exit(1);
+}
+
+const internalRateLimit = createRateLimiter(30, 60_000);
+const publicRateLimit = createRateLimiter(12, 60_000);
 
 // Token cache
 let cachedToken = null;
@@ -38,17 +55,33 @@ async function getIdToken() {
       Referer: "https://app.usemotion.com/",
       Origin: "https://app.usemotion.com",
     },
-    body: `grant_type=refresh_token&refresh_token=${REFRESH_TOKEN}`,
+    body: `grant_type=refresh_token&refresh_token=${refreshToken}`,
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Token refresh failed (${res.status}): ${err}`);
+    throw new Error(`Token refresh failed (HTTP ${res.status}). Check your FIREBASE_API_KEY and FIREBASE_REFRESH_TOKEN.`);
   }
 
   const data = await res.json();
   cachedToken = data.id_token;
-  tokenExpiry = Date.now() + parseInt(data.expires_in) * 1000;
+  const expiresIn = parseInt(data.expires_in);
+  tokenExpiry = Date.now() + (isNaN(expiresIn) ? 3600 : expiresIn) * 1000;
+
+  // Persist rotated refresh token so cold restarts don't break
+  if (data.refresh_token && data.refresh_token !== refreshToken) {
+    refreshToken = data.refresh_token;
+    try {
+      let envContent = readFileSync(ENV_PATH, "utf8");
+      envContent = envContent.replace(
+        /^FIREBASE_REFRESH_TOKEN=.*$/m,
+        `FIREBASE_REFRESH_TOKEN=${data.refresh_token}`
+      );
+      writeFileSync(ENV_PATH, envContent, { mode: 0o600 });
+    } catch {
+      // Non-critical — token works in memory, just won't survive restart
+    }
+  }
+
   return cachedToken;
 }
 
@@ -65,6 +98,7 @@ function internalHeaders(token) {
 }
 
 async function internalFetch(path, options = {}) {
+  internalRateLimit("Motion internal API");
   const token = await getIdToken();
   const url = `${INTERNAL_BASE}${path}`;
   const res = await fetch(url, {
@@ -73,14 +107,16 @@ async function internalFetch(path, options = {}) {
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Motion API error (${res.status}): ${body}`);
+    const status = res.status;
+    if (status === 429) throw new Error("Motion API rate limited. Wait a moment and try again.");
+    throw new Error(`Motion API error (HTTP ${status}). The request to ${path} was not successful.`);
   }
 
   return res.json();
 }
 
 async function publicFetch(path) {
+  publicRateLimit("Motion public API");
   const res = await fetch(`${PUBLIC_BASE}${path}`, {
     headers: {
       "X-API-Key": MOTION_API_KEY,
@@ -89,8 +125,9 @@ async function publicFetch(path) {
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Motion public API error (${res.status}): ${body}`);
+    const status = res.status;
+    if (status === 429) throw new Error("Motion public API rate limited. Wait a moment and try again.");
+    throw new Error(`Motion public API error (HTTP ${status}). The request to ${path} was not successful.`);
   }
 
   return res.json();
@@ -153,7 +190,7 @@ const TOOLS = [
   {
     name: "create_event",
     description:
-      "Create a new calendar event. Defaults to the primary calendar (nate@lorecraft.io) if no calendar_id is specified.",
+      "Create a new calendar event. Defaults to your primary calendar if no calendar_id is specified.",
     inputSchema: {
       type: "object",
       properties: {
@@ -380,6 +417,9 @@ async function handleListCalendars(args) {
 }
 
 async function handleListEvents(args) {
+  validateDate(args.start_date, "start_date");
+  validateDate(args.end_date, "end_date");
+
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
     body: JSON.stringify({
@@ -420,6 +460,9 @@ async function handleListEvents(args) {
 }
 
 async function handleSearchEvents(args) {
+  if (!args.query || typeof args.query !== "string") throw new Error("query is required");
+  if (args.query.length > 500) throw new Error("query exceeds maximum length of 500 characters");
+
   const data = await internalFetch(
     `/v2/calendar_events/search?query=${encodeURIComponent(args.query)}`
   );
@@ -427,6 +470,15 @@ async function handleSearchEvents(args) {
 }
 
 async function handleCreateEvent(args) {
+  if (!args.title || typeof args.title !== "string") throw new Error("title is required");
+  validateISODate(args.start, "start");
+  validateISODate(args.end, "end");
+  if (args.calendar_id) validateId(args.calendar_id, "calendar_id");
+  if (args.status) validateEnum(args.status, ["BUSY", "FREE"], "status");
+  if (args.visibility) validateEnum(args.visibility, ["CONFIDENTIAL", "DEFAULT", "PUBLIC", "PRIVATE"], "visibility");
+  if (args.conference_type) validateEnum(args.conference_type, ["none", "zoom", "hangoutsMeet", "meet", "teamsForBusiness", "phone"], "conference_type");
+  if (args.attendees) validateStringArray(args.attendees, "attendees");
+
   // Resolve calendar — default to primary if not specified
   let calendarId = args.calendar_id;
   let organizerEmail;
@@ -476,7 +528,7 @@ async function handleCreateEvent(args) {
   if (args.location) body.location = args.location;
 
   const data = await internalFetch(
-    `/v3/calendar-events/${calendarId}`,
+    `/v3/calendar-events/${validateId(calendarId, "calendar_id")}`,
     { method: "POST", body: JSON.stringify(body) }
   );
 
@@ -484,6 +536,10 @@ async function handleCreateEvent(args) {
 }
 
 async function handleUpdateEvent(args) {
+  validateId(args.event_id, "event_id");
+  if (args.start) validateISODate(args.start, "start");
+  if (args.end) validateISODate(args.end, "end");
+
   const body = {};
   if (args.title) body.title = args.title;
   if (args.start) body.start = args.start;
@@ -491,7 +547,7 @@ async function handleUpdateEvent(args) {
   if (args.description) body.description = args.description;
   if (args.location) body.location = args.location;
 
-  const data = await internalFetch(`/v3/calendar-events/${args.event_id}`, {
+  const data = await internalFetch(`/v3/calendar-events/${validateId(args.event_id, "event_id")}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
@@ -500,9 +556,12 @@ async function handleUpdateEvent(args) {
 }
 
 async function handleDeleteEvent(args) {
+  validateId(args.event_id, "event_id");
+
   const token = await getIdToken();
+  internalRateLimit("Motion internal API");
   const res = await fetch(
-    `${INTERNAL_BASE}/v2/calendar_events/${args.event_id}`,
+    `${INTERNAL_BASE}/v2/calendar_events/${validateId(args.event_id, "event_id")}`,
     {
       method: "DELETE",
       headers: internalHeaders(token),
@@ -510,22 +569,29 @@ async function handleDeleteEvent(args) {
   );
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Delete failed (${res.status}): ${body}`);
+    const status = res.status;
+    if (status === 429) throw new Error("Motion API rate limited. Wait a moment and try again.");
+    throw new Error(`Delete failed (HTTP ${status}). Could not delete event ${args.event_id}.`);
   }
 
   return { success: true, deletedId: args.event_id };
 }
 
 async function handleGetTasks(args) {
+  if (args.status) validateEnum(args.status, ["COMPLETED", "IN_PROGRESS", "TODO"], "status");
+
   let path = "/tasks?";
-  if (args.status) path += `status=${args.status}&`;
+  if (args.status) path += `status=${encodeURIComponent(args.status)}&`;
   const data = await publicFetch(path);
   return data;
 }
 
 async function handleCheckAvailability(args) {
-  const durationMinutes = args.duration_minutes || 30;
+  validateDate(args.start_date, "start_date");
+  validateDate(args.end_date, "end_date");
+  const durationMinutes = typeof args.duration_minutes === "number" && args.duration_minutes > 0
+    ? Math.min(args.duration_minutes, 1440)
+    : 30;
 
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
@@ -624,6 +690,10 @@ async function handleCheckAvailability(args) {
 }
 
 async function handleGetTeammateEvents(args) {
+  validateStringArray(args.teammate_user_ids, "teammate_user_ids", 20);
+  validateDate(args.start_date, "start_date");
+  validateDate(args.end_date, "end_date");
+
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
     body: JSON.stringify({
@@ -658,6 +728,9 @@ async function handleGetTeammateEvents(args) {
 }
 
 async function handleGetAlldayEvents(args) {
+  validateDate(args.start_date, "start_date");
+  validateDate(args.end_date, "end_date");
+
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
     body: JSON.stringify({
@@ -699,7 +772,10 @@ async function handleSyncCalendars() {
 }
 
 async function handleManageCalendars(args) {
-  const data = await internalFetch(`/v2/calendars/${args.calendar_id}`, {
+  validateId(args.calendar_id, "calendar_id");
+  if (typeof args.enabled !== "boolean") throw new Error("enabled must be a boolean (true or false)");
+
+  const data = await internalFetch(`/v2/calendars/${validateId(args.calendar_id, "calendar_id")}`, {
     method: "PATCH",
     body: JSON.stringify({ isEnabled: args.enabled }),
   });

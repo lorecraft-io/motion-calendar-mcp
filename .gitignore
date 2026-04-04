@@ -1,4 +1,30 @@
 node_modules/
+dist/
+
+# Environment / secrets
 .env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Private keys and certificates
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Claude / RuFlo tooling
+.claude-flow/
+.ruflo/
+.claude/
+.mcp.json
+CLAUDE.md
