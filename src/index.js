@@ -803,6 +803,7 @@ async function handleGetTeammateEvents(args) {
 async function handleGetAlldayEvents(args) {
   validateDate(args.start_date, "start_date");
   validateDate(args.end_date, "end_date");
+  if (args.calendar_id) validateId(args.calendar_id, "calendar_id");
 
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
