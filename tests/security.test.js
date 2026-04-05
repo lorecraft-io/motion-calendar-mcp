@@ -125,12 +125,12 @@ describe("validateISODate", () => {
     expect(validateISODate("2024-01-15T10:30:00+05:00", "start")).toBe("2024-01-15T10:30:00+05:00");
   });
 
-  it("accepts plain date strings (Date.parse accepts them)", () => {
-    expect(validateISODate("2024-01-15", "start")).toBe("2024-01-15");
+  it("rejects plain date strings without time component", () => {
+    expect(() => validateISODate("2024-01-15", "start")).toThrow("start must be a valid ISO 8601 date-time string");
   });
 
   it('rejects "not-a-date"', () => {
-    expect(() => validateISODate("not-a-date", "start")).toThrow("start must be a valid ISO 8601 date string");
+    expect(() => validateISODate("not-a-date", "start")).toThrow("start must be a valid ISO 8601 date-time string");
   });
 
   it("rejects empty string", () => {
@@ -146,7 +146,7 @@ describe("validateISODate", () => {
   });
 
   it("rejects random garbage strings", () => {
-    expect(() => validateISODate("abc123xyz", "start")).toThrow("start must be a valid ISO 8601 date string");
+    expect(() => validateISODate("abc123xyz", "start")).toThrow("start must be a valid ISO 8601 date-time string");
   });
 });
 
