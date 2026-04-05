@@ -147,6 +147,7 @@ const TOOLS = [
           description: "If true, only return enabled calendars",
         },
       },
+      additionalProperties: false,
     },
   },
   {
@@ -170,6 +171,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -185,6 +187,7 @@ const TOOLS = [
         },
       },
       required: ["query"],
+      additionalProperties: false,
     },
   },
   {
@@ -233,6 +236,7 @@ const TOOLS = [
         },
       },
       required: ["title", "start", "end"],
+      additionalProperties: false,
     },
   },
   {
@@ -249,6 +253,7 @@ const TOOLS = [
         location: { type: "string", description: "New location" },
       },
       required: ["event_id"],
+      additionalProperties: false,
     },
   },
   {
@@ -260,6 +265,7 @@ const TOOLS = [
         event_id: { type: "string", description: "The event ID to delete" },
       },
       required: ["event_id"],
+      additionalProperties: false,
     },
   },
   {
@@ -275,6 +281,7 @@ const TOOLS = [
           description: "Filter by task status",
         },
       },
+      additionalProperties: false,
     },
   },
   {
@@ -298,6 +305,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -322,6 +330,7 @@ const TOOLS = [
         },
       },
       required: ["teammate_user_ids", "start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -345,6 +354,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -354,6 +364,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {},
+      additionalProperties: false,
     },
   },
   {
@@ -373,6 +384,7 @@ const TOOLS = [
         },
       },
       required: ["calendar_id", "enabled"],
+      additionalProperties: false,
     },
   },
 ];
@@ -851,8 +863,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   } catch (error) {
+    // Sanitize error: only return known-safe messages from our own validation
+    // and API wrappers. Unexpected errors get a generic message to prevent
+    // leaking internal details (hostnames, stack traces, raw API responses).
+    const safeMessage = (error instanceof Error && error.message)
+      ? error.message.replace(/https?:\/\/[^\s)]+/g, "[redacted-url]")
+      : "An unexpected error occurred";
+    console.error(`[motion-calendar-mcp] Tool "${name}" error:`, error);
     return {
-      content: [{ type: "text", text: `Error: ${error.message}` }],
+      content: [{ type: "text", text: `Error: ${safeMessage}` }],
       isError: true,
     };
   }
@@ -863,4 +882,7 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error("[motion-calendar-mcp] Fatal startup error:", err instanceof Error ? err.message : "Unknown error");
+  process.exit(1);
+});
