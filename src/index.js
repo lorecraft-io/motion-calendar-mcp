@@ -140,6 +140,9 @@ async function internalFetch(path, options = {}) {
       throw new Error(`Motion API error (HTTP ${status}). The request to ${path} was not successful.`);
     }
 
+    if (res.status === 204 || res.status === 205 || res.headers.get('content-length') === '0') {
+      return null;
+    }
     return res.json();
   });
 }
