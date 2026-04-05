@@ -48,14 +48,14 @@ async function getIdToken() {
     return cachedToken;
   }
 
-  const res = await fetch(`${FIREBASE_TOKEN_URL}?key=${FIREBASE_API_KEY}`, {
+  const res = await fetchWithTimeout(`${FIREBASE_TOKEN_URL}?key=${FIREBASE_API_KEY}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Referer: "https://app.usemotion.com/",
       Origin: "https://app.usemotion.com",
     },
-    body: `grant_type=refresh_token&refresh_token=${refreshToken}`,
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
   });
 
   if (!res.ok) {
@@ -97,40 +97,73 @@ function internalHeaders(token) {
   };
 }
 
-async function internalFetch(path, options = {}) {
-  internalRateLimit("Motion internal API");
-  const token = await getIdToken();
-  const url = `${INTERNAL_BASE}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: { ...internalHeaders(token), ...options.headers },
-  });
+// Fetch with a hard timeout — prevents indefinite hangs if Motion API is slow/unresponsive
+function fetchWithTimeout(url, options = {}, timeoutMs = 30_000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+}
 
-  if (!res.ok) {
-    const status = res.status;
-    if (status === 429) throw new Error("Motion API rate limited. Wait a moment and try again.");
-    throw new Error(`Motion API error (HTTP ${status}). The request to ${path} was not successful.`);
+// Retry up to maxAttempts on server-side 429/503 or transient network errors
+async function withRetry(fn, maxAttempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const isRetryable =
+        err.name === "AbortError" ||
+        (err.message && (
+          err.message.includes("HTTP 429") ||
+          err.message.includes("HTTP 503") ||
+          err.message.includes("fetch failed")
+        ));
+      if (!isRetryable || attempt === maxAttempts) throw err;
+      await new Promise((r) => setTimeout(r, 1_000 * attempt)); // 1s, 2s backoff
+    }
   }
+  throw lastError;
+}
 
-  return res.json();
+async function internalFetch(path, options = {}) {
+  return withRetry(async () => {
+    internalRateLimit("Motion internal API");
+    const token = await getIdToken();
+    const res = await fetchWithTimeout(`${INTERNAL_BASE}${path}`, {
+      ...options,
+      headers: { ...internalHeaders(token), ...options.headers },
+    });
+
+    if (!res.ok) {
+      const status = res.status;
+      throw new Error(`Motion API error (HTTP ${status}). The request to ${path} was not successful.`);
+    }
+
+    if (res.status === 204 || res.status === 205 || res.headers.get('content-length') === '0') {
+      return null;
+    }
+    return res.json();
+  });
 }
 
 async function publicFetch(path) {
-  publicRateLimit("Motion public API");
-  const res = await fetch(`${PUBLIC_BASE}${path}`, {
-    headers: {
-      "X-API-Key": MOTION_API_KEY,
-      Accept: "application/json",
-    },
+  return withRetry(async () => {
+    publicRateLimit("Motion public API");
+    const res = await fetchWithTimeout(`${PUBLIC_BASE}${path}`, {
+      headers: {
+        "X-API-Key": MOTION_API_KEY,
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const status = res.status;
+      throw new Error(`Motion public API error (HTTP ${status}). The request to ${path} was not successful.`);
+    }
+
+    return res.json();
   });
-
-  if (!res.ok) {
-    const status = res.status;
-    if (status === 429) throw new Error("Motion public API rate limited. Wait a moment and try again.");
-    throw new Error(`Motion public API error (HTTP ${status}). The request to ${path} was not successful.`);
-  }
-
-  return res.json();
 }
 
 // Tool definitions
@@ -147,6 +180,7 @@ const TOOLS = [
           description: "If true, only return enabled calendars",
         },
       },
+      additionalProperties: false,
     },
   },
   {
@@ -170,6 +204,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -185,6 +220,7 @@ const TOOLS = [
         },
       },
       required: ["query"],
+      additionalProperties: false,
     },
   },
   {
@@ -233,6 +269,7 @@ const TOOLS = [
         },
       },
       required: ["title", "start", "end"],
+      additionalProperties: false,
     },
   },
   {
@@ -249,6 +286,7 @@ const TOOLS = [
         location: { type: "string", description: "New location" },
       },
       required: ["event_id"],
+      additionalProperties: false,
     },
   },
   {
@@ -260,6 +298,7 @@ const TOOLS = [
         event_id: { type: "string", description: "The event ID to delete" },
       },
       required: ["event_id"],
+      additionalProperties: false,
     },
   },
   {
@@ -275,6 +314,7 @@ const TOOLS = [
           description: "Filter by task status",
         },
       },
+      additionalProperties: false,
     },
   },
   {
@@ -298,6 +338,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -322,6 +363,7 @@ const TOOLS = [
         },
       },
       required: ["teammate_user_ids", "start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -345,6 +387,7 @@ const TOOLS = [
         },
       },
       required: ["start_date", "end_date"],
+      additionalProperties: false,
     },
   },
   {
@@ -354,6 +397,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {},
+      additionalProperties: false,
     },
   },
   {
@@ -373,6 +417,7 @@ const TOOLS = [
         },
       },
       required: ["calendar_id", "enabled"],
+      additionalProperties: false,
     },
   },
 ];
@@ -419,6 +464,7 @@ async function handleListCalendars(args) {
 async function handleListEvents(args) {
   validateDate(args.start_date, "start_date");
   validateDate(args.end_date, "end_date");
+  if (args.calendar_id) validateId(args.calendar_id, "calendar_id");
 
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
@@ -447,7 +493,7 @@ async function handleListEvents(args) {
       status: e.status,
       location: e.location,
       conferenceLink: e.conferenceLink,
-      description: e.description?.substring(0, 500),
+      description: typeof e.description === "string" ? e.description.substring(0, 500) : undefined,
       calendarId: e.calendarId,
       attendees: e.attendees?.map((a) => ({
         email: a.email,
@@ -466,11 +512,36 @@ async function handleSearchEvents(args) {
   const data = await internalFetch(
     `/v2/calendar_events/search?query=${encodeURIComponent(args.query)}`
   );
-  return data;
+
+  // Map to known shape to prevent raw API response leakage
+  const raw = Array.isArray(data) ? data : (data.events || data.results || []);
+  const events = raw.map((e) => ({
+    id: e.id,
+    title: e.title,
+    start: e.start,
+    end: e.end,
+    isAllDay: e.isAllDay,
+    status: e.status,
+    location: e.location,
+    calendarId: e.calendarId,
+    description: e.description?.substring(0, 500),
+    organizer: e.organizer?.email,
+  }));
+
+  return { events, total: events.length };
 }
 
 async function handleCreateEvent(args) {
   if (!args.title || typeof args.title !== "string") throw new Error("title is required");
+  if (args.title.length > 500) throw new Error("title must be 500 characters or fewer");
+  if (args.description !== undefined) {
+    if (typeof args.description !== "string") throw new Error("description must be a string");
+    if (args.description.length > 5000) throw new Error("description must be 5000 characters or fewer");
+  }
+  if (args.location !== undefined) {
+    if (typeof args.location !== "string") throw new Error("location must be a string");
+    if (args.location.length > 500) throw new Error("location must be 500 characters or fewer");
+  }
   validateISODate(args.start, "start");
   validateISODate(args.end, "end");
   if (args.calendar_id) validateId(args.calendar_id, "calendar_id");
@@ -539,13 +610,25 @@ async function handleUpdateEvent(args) {
   validateId(args.event_id, "event_id");
   if (args.start) validateISODate(args.start, "start");
   if (args.end) validateISODate(args.end, "end");
+  if (args.title !== undefined) {
+    if (typeof args.title !== "string") throw new Error("title must be a string");
+    if (args.title.length > 500) throw new Error("title must be 500 characters or fewer");
+  }
+  if (args.description !== undefined) {
+    if (typeof args.description !== "string") throw new Error("description must be a string");
+    if (args.description.length > 5000) throw new Error("description must be 5000 characters or fewer");
+  }
+  if (args.location !== undefined) {
+    if (typeof args.location !== "string") throw new Error("location must be a string");
+    if (args.location.length > 500) throw new Error("location must be 500 characters or fewer");
+  }
 
   const body = {};
-  if (args.title) body.title = args.title;
+  if (args.title !== undefined) body.title = args.title;
   if (args.start) body.start = args.start;
   if (args.end) body.end = args.end;
-  if (args.description) body.description = args.description;
-  if (args.location) body.location = args.location;
+  if (args.description !== undefined) body.description = args.description;
+  if (args.location !== undefined) body.location = args.location;
 
   const data = await internalFetch(`/v3/calendar-events/${validateId(args.event_id, "event_id")}`, {
     method: "PATCH",
@@ -557,23 +640,9 @@ async function handleUpdateEvent(args) {
 
 async function handleDeleteEvent(args) {
   validateId(args.event_id, "event_id");
-
-  const token = await getIdToken();
-  internalRateLimit("Motion internal API");
-  const res = await fetch(
-    `${INTERNAL_BASE}/v2/calendar_events/${validateId(args.event_id, "event_id")}`,
-    {
-      method: "DELETE",
-      headers: internalHeaders(token),
-    }
-  );
-
-  if (!res.ok) {
-    const status = res.status;
-    if (status === 429) throw new Error("Motion API rate limited. Wait a moment and try again.");
-    throw new Error(`Delete failed (HTTP ${status}). Could not delete event ${args.event_id}.`);
-  }
-
+  await internalFetch(`/v2/calendar_events/${validateId(args.event_id, "event_id")}`, {
+    method: "DELETE",
+  });
   return { success: true, deletedId: args.event_id };
 }
 
@@ -589,6 +658,10 @@ async function handleGetTasks(args) {
 async function handleCheckAvailability(args) {
   validateDate(args.start_date, "start_date");
   validateDate(args.end_date, "end_date");
+  const rangeStartMs = new Date(args.start_date).getTime();
+  const rangeEndMs = new Date(args.end_date).getTime();
+  if (rangeEndMs < rangeStartMs) throw new Error("end_date must be on or after start_date");
+  if ((rangeEndMs - rangeStartMs) / 86_400_000 > 90) throw new Error("Date range cannot exceed 90 days");
   const durationMinutes = typeof args.duration_minutes === "number" && args.duration_minutes > 0
     ? Math.min(args.duration_minutes, 1440)
     : 30;
@@ -730,6 +803,7 @@ async function handleGetTeammateEvents(args) {
 async function handleGetAlldayEvents(args) {
   validateDate(args.start_date, "start_date");
   validateDate(args.end_date, "end_date");
+  if (args.calendar_id) validateId(args.calendar_id, "calendar_id");
 
   const data = await internalFetch("/v3/calendar-events/scheduling-assistant", {
     method: "POST",
@@ -756,7 +830,7 @@ async function handleGetAlldayEvents(args) {
       end: e.end,
       status: e.status,
       calendarId: e.calendarId,
-      description: e.description?.substring(0, 500),
+      description: typeof e.description === "string" ? e.description.substring(0, 500) : undefined,
     })),
     total: events.length,
   };
@@ -800,6 +874,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const startTime = Date.now();
 
   try {
     let result;
@@ -842,17 +917,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       default:
         return {
-          content: [{ type: "text", text: `Unknown tool: ${name}` }],
+          content: [{ type: "text", text: "Unknown tool" }],
           isError: true,
         };
     }
 
+    console.error(JSON.stringify({ event: "tool_call", tool: name, status: "success", durationMs: Date.now() - startTime }));
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   } catch (error) {
+    // Sanitize error: only return known-safe messages from our own validation
+    // and API wrappers. Unexpected errors get a generic message to prevent
+    // leaking internal details (hostnames, stack traces, raw API responses).
+    const safeMessage = (error instanceof Error && error.message)
+      ? error.message.replace(/https?:\/\/[^\s)]+/g, "[redacted-url]")
+      : "An unexpected error occurred";
+    console.error(JSON.stringify({ event: "tool_call", tool: name, status: "error", durationMs: Date.now() - startTime, error: safeMessage }));
     return {
-      content: [{ type: "text", text: `Error: ${error.message}` }],
+      content: [{ type: "text", text: `Error: ${safeMessage}` }],
       isError: true,
     };
   }
@@ -863,4 +946,7 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error("[motion-calendar-mcp] Fatal startup error:", err instanceof Error ? err.message : "Unknown error");
+  process.exit(1);
+});

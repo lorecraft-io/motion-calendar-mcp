@@ -13,7 +13,9 @@ export function validateDate(value, name) {
 
 export function validateISODate(value, name) {
   if (!value || typeof value !== "string") throw new Error(`${name} is required`);
-  if (isNaN(Date.parse(value))) throw new Error(`${name} must be a valid ISO 8601 date string`);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) || isNaN(Date.parse(value))) {
+    throw new Error(`${name} must be a valid ISO 8601 date-time string (e.g. 2026-04-03T14:00:00.000Z)`);
+  }
   return value;
 }
 
