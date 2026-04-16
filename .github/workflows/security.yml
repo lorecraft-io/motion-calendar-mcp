@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 9 * * 1' # Weekly Monday 9am UTC
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -19,6 +23,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
+          cache: 'npm'
       - run: npm ci
       - name: npm audit
         run: npm audit --audit-level=high
