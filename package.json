@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/lorecraft-io/motion-calendar-mcp#readme",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.12.1",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "dotenv": "17.4.0"
   },
   "devDependencies": {
