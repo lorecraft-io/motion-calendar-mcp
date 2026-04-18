@@ -6,7 +6,8 @@
 
 ![Motion MCP](./motion-mcp.png)
 
-**Full calendar access for Claude Code — events, availability, scheduling. What Motion's public API should have been, but they chose not to (for some reason, so I fixed it).**
+**Full calendar access for Claude Code — events, availability, scheduling. 
+What Motion's public API should have been, but they chose not to (for some reason, so I fixed it).**
 
 [![npm version](https://img.shields.io/npm/v/%40lorecraft%2Fmotion-mcp)](https://www.npmjs.com/package/@lorecraft/motion-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
