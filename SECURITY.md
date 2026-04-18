@@ -24,10 +24,10 @@ This MCP server uses Firebase refresh tokens and Motion API keys stored in a loc
 
 1. Rotate your Motion API key at https://app.usemotion.com/settings
 2. Sign out of all Motion browser sessions to invalidate the Firebase refresh token
-3. Re-run the setup wizard: `npx motion-mcp setup`
+3. Re-run the setup wizard: `npx @lorecraft/motion-mcp setup`
 
 ## Scope
 
 - Source code in this repository
-- Published npm package (`motion-mcp`)
+- Published npm package (`@lorecraft/motion-mcp`)
 - GitHub Actions workflows
