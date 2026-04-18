@@ -1,10 +1,10 @@
-<a id="table-of-contents"></a>
+<a id="quick-navigation"></a>
 
 <div align="center">
 
-# Motion Calendar MCP
+# Motion MCP
 
-![Motion Calendar MCP](./motion-mcp.png)
+![Motion MCP](./motion-mcp.png)
 
 **Full calendar access for Claude Code — events, availability, scheduling. What Motion's public API should have been, but they chose not to (for some reason, so I fixed it).**
 
@@ -17,29 +17,22 @@
 
 ---
 
-## Table of Contents
+## Quick Navigation
 
-**Talk to it**
-- [Natural Language Examples](#natural-language-examples)
-
-**Why**
-- [Why This Exists](#why-this-exists)
-- [How This Compares](#how-this-compares)
-
-**Setup**
-- [Install](#install)
-- [Tools](#tools)
-- [Usage Examples](#usage-examples)
-- [Configuration](#configuration)
-
-**Reference**
-- [Troubleshooting](#troubleshooting)
-- [Security](#security)
-- [License](#license)
-
-**Meta**
-- [Project Status](#project-status)
-- [Author](#author)
+| Link | Section | What it does | Time |
+|---|---|---|---|
+| [Natural Language Examples](#natural-language-examples) | Talk to it | Copy-paste prompts for events, availability, teammates, all-day | ~1 min |
+| [Why This Exists](#why-this-exists) | Why | The Motion public API gap and why this shim exists | ~2 min |
+| [How This Compares](#how-this-compares) | Comparison | vs Motion web/app, raw public API, no-MCP baseline | ~1 min |
+| [Install](#install) | Setup | One-liner to wire the MCP into Claude | ~1 min |
+| [Tools](#tools) | Reference | All 12 MCP tools — calendar + tasks | ~2 min |
+| [Usage Examples](#usage-examples) | Reference | Worked flows (today, availability, recurring, move) | ~2 min |
+| [Configuration](#configuration) | Setup | Env vars, default calendar, timezone | ~3 min |
+| [Troubleshooting](#troubleshooting) | Reference | Auth failures, token expiry, sync delays | ~2 min |
+| [Security](#security) | Reference | Secret handling + disclosure | ~1 min |
+| [Project Status](#project-status) | Meta | Low-maintenance mode + where to go instead | ~1 min |
+| [License](#license) | Meta | MIT | — |
+| [Author](#author) | Meta | Who built it | — |
 
 ---
 
@@ -92,7 +85,7 @@
 
 Every one of the above becomes a tool call under the hood. You never have to know which tool. You never have to build a payload. You just say the sentence.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -116,13 +109,13 @@ Motion is a good product. The auto-scheduler is thoughtful, the UI is polished, 
 
 Until then, this is here.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
 ## How This Compares
 
-| Capability | 🟢 **motion-calendar-mcp (this repo)** | Motion web/app | Raw Motion public API | No integration |
+| Capability | 🟢 **Motion MCP (this repo)** | Motion web/app | Raw Motion public API | No integration |
 |---|---|---|---|---|
 | Full event CRUD from Claude | 🟢 **✅ Yes** | Manual (GUI) | ❌ No | ❌ No |
 | Availability / free-busy checks | 🟢 **✅ Yes** | ✅ Visual only | ❌ No | ❌ No |
@@ -141,7 +134,7 @@ Until then, this is here.
 
 The tradeoff is honest: this MCP requires a few extra setup steps because it authenticates the way Motion's own web app does (Firebase refresh token + user ID pulled from your browser's IndexedDB). In exchange, you get the calendar surface that every other integration is locked out of.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -157,7 +150,7 @@ Then configure credentials (see [Configuration](#configuration)) and restart Cla
 
 If you'd rather set everything up inline in your Claude MCP config, skip ahead to [Configuration](#configuration) for the JSON shape.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -187,7 +180,7 @@ If you'd rather set everything up inline in your Claude MCP config, skip ahead t
 
 > **Why only one task tool?** The full Motion task surface (create, update, projects, recurring, custom fields) is already well-served by the built-in Motion MCP and several community MCPs. This repo intentionally focuses on the calendar gap those other MCPs can't fill. `get_tasks` is included so you don't need a second MCP just to read task status alongside your calendar.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -233,7 +226,7 @@ Worked examples — what you say, what Claude does, what comes back.
 
 **Result:** Event is moved, attendees are re-notified by Motion, Claude confirms with the new time. If there's more than one 3pm event, Claude asks which one before moving anything.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -312,7 +305,7 @@ MOTION_TIMEZONE=America/New_York
 
 Restart Claude Code after either option.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -336,7 +329,7 @@ Refresh `app.usemotion.com` in that tab — a fresh page load always fires at le
 **You're seeing `firebaseLocalStorageDb` but the JSON structure looks different.**
 Motion occasionally updates their frontend. The important fields are `refreshToken` (somewhere under `value`) and `uid`. If a path changes, grep the JSON — the values themselves are stable even when their nesting shifts.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -350,7 +343,7 @@ Your Firebase refresh token and Motion API key together grant full access to you
 
 Full policy and responsible-disclosure contact: see [SECURITY.md](./SECURITY.md).
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -358,7 +351,7 @@ Full policy and responsible-disclosure contact: see [SECURITY.md](./SECURITY.md)
 
 MIT — see [LICENSE](./LICENSE) for details.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -370,7 +363,7 @@ MIT — see [LICENSE](./LICENSE) for details.
 
 If Motion ships a first-party MCP with the calendar surface, I'll link it at the top of this README and step out of the way.
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
 
 ---
 
@@ -382,4 +375,4 @@ Built by **Nate Davidovich** / [Lorecraft](https://github.com/lorecraft-io).
 - npm: [lorecraft](https://www.npmjs.com/~lorecraft)
 - Sister project: [morgen-mcp](https://github.com/lorecraft-io/morgen-mcp) (actively maintained)
 
-<p align="right"><a href="#table-of-contents">↑ back to top</a></p>
+<p align="right"><a href="#quick-navigation">↑ back to top</a></p>
