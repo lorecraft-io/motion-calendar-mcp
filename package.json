@@ -1,7 +1,7 @@
 {
   "name": "fidgetcoding-motion-mcp",
   "version": "2.1.0",
-  "description": "MCP server for Motion calendar — full calendar event access, availability checking, and task management. Uses Motion's internal API for calendar features the public API doesn't support.",
+  "description": "MCP server for Motion calendar \u2014 full calendar event access, availability checking, and task management. Uses Motion's internal API for calendar features the public API doesn't support.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
@@ -26,7 +26,15 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "keywords": ["mcp", "motion", "calendar", "claude", "ai", "scheduling", "productivity"],
+  "keywords": [
+    "mcp",
+    "motion",
+    "calendar",
+    "claude",
+    "ai",
+    "scheduling",
+    "productivity"
+  ],
   "author": "Nate Davidovich <nate@lorecraft.io>",
   "license": "MIT",
   "repository": {
@@ -40,5 +48,8 @@
   },
   "devDependencies": {
     "vitest": "4.1.4"
+  },
+  "bugs": {
+    "url": "https://github.com/lorecraft-io/motion-mcp/issues"
   }
 }

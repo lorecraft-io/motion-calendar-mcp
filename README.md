@@ -4,7 +4,7 @@
 
 # Motion MCP
 
-![Motion MCP](./motion-mcp.png)
+![Motion MCP](https://raw.githubusercontent.com/lorecraft-io/motion-mcp/main/motion-mcp.png)
 
 **Full calendar access for Claude Code — events, availability, scheduling.**
 
@@ -54,7 +54,7 @@
 ```
 
 ```
-"Create a 30-minute meeting called 'Team Sync' tomorrow at 2pm with drew@example.com."
+"Create a 30-minute meeting called 'Team Sync' tomorrow at 2pm with teammate@example.com."
 ```
 
 ```
@@ -212,9 +212,9 @@ Worked examples — what you say, what Claude does, what comes back.
 
 ### Example 3 — "Create a recurring weekly 1:1."
 
-**You:** *"Create a 30-minute 1:1 with drew@example.com every Tuesday at 2pm, starting next Tuesday, called 'Drew <> Nate 1:1'."*
+**You:** *"Create a 30-minute 1:1 with teammate@example.com every Tuesday at 2pm, starting next Tuesday, called 'Weekly 1:1'."*
 
-**Claude calls:** `create_event` with title, start/end in your timezone, `attendees: ["drew@example.com"]`, and a weekly recurrence rule.
+**Claude calls:** `create_event` with title, start/end in your timezone, `attendees: ["teammate@example.com"]`, and a weekly recurrence rule.
 
 **Result:** Event is created on your primary calendar, invite fires, Motion's auto-scheduler respects the fixed time. Claude confirms the event ID and first occurrence.
 
