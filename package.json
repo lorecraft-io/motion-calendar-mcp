@@ -1,11 +1,11 @@
 {
-  "name": "motion-calendar-mcp",
+  "name": "motion-mcp",
   "version": "2.1.0",
   "description": "MCP server for Motion calendar — full calendar event access, availability checking, and task management. Uses Motion's internal API for calendar features the public API doesn't support.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "motion-calendar-mcp": "src/index.js"
+    "motion-mcp": "src/index.js"
   },
   "files": [
     "src/",
@@ -31,9 +31,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lorecraft-io/motion-calendar-mcp"
+    "url": "https://github.com/lorecraft-io/motion-mcp"
   },
-  "homepage": "https://github.com/lorecraft-io/motion-calendar-mcp#readme",
+  "homepage": "https://github.com/lorecraft-io/motion-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
     "dotenv": "17.4.2"

@@ -2,7 +2,7 @@
 # ============================================================
 # MOTION CALENDAR MCP — INSTALLER
 # ============================================================
-# Installs motion-calendar-mcp as a Claude Code MCP server,
+# Installs motion-mcp as a Claude Code MCP server,
 # collects credentials, writes .env, and verifies the setup.
 #
 # USAGE:
@@ -34,10 +34,10 @@ fail()    { echo -e "${RED}[FAIL]${NC}    $1"; exit 1; }
 step()    { echo -e "\n${CYAN}${BOLD}── Step $1: $2 ──${NC}"; }
 
 # ── Config ──────────────────────────────────────────────────
-ENV_DIR="$HOME/.motion-calendar-mcp"
+ENV_DIR="$HOME/.motion-mcp"
 ENV_FILE="$ENV_DIR/.env"
-MCP_NAME="motion-calendar"
-NPX_CMD="npx -y motion-calendar-mcp"
+MCP_NAME="motion"
+NPX_CMD="npx -y motion-mcp"
 
 # ── Banner ──────────────────────────────────────────────────
 echo ""

@@ -31,7 +31,7 @@ const _missingVars = Object.entries(_requiredVars).filter(([, v]) => !v).map(([k
 if (_missingVars.length > 0) {
   console.error(
     `Missing required environment variables: ${_missingVars.join(", ")}\n` +
-    `Run "npx motion-calendar-mcp setup" or see .env.example for details.`
+    `Run "npx motion-mcp setup" or see .env.example for details.`
   );
   process.exit(1);
 }
@@ -864,7 +864,7 @@ async function handleManageCalendars(args) {
 
 // Server setup
 const server = new Server(
-  { name: "motion-calendar", version: "2.1.0" },
+  { name: "motion", version: "2.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -947,6 +947,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[motion-calendar-mcp] Fatal startup error:", err instanceof Error ? err.message : "Unknown error");
+  console.error("[motion-mcp] Fatal startup error:", err instanceof Error ? err.message : "Unknown error");
   process.exit(1);
 });
