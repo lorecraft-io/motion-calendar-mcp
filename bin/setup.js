@@ -78,7 +78,7 @@ MOTION_TIMEZONE=${timezone}
   console.log("  Next steps:");
   console.log("  1. Add the MCP server to your Claude config:");
   console.log("");
-  console.log('     claude mcp add motion -- npx @lorecraft/motion-mcp');
+  console.log('     claude mcp add motion -- npx fidgetcoding-motion-mcp');
   console.log("");
   console.log("  2. Or run directly:");
   console.log("");

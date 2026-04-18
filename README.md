@@ -10,7 +10,7 @@
 
 **What Motion's public API should have been, but they chose not to (for some reason, so I fixed it).**
 
-[![npm version](https://img.shields.io/npm/v/%40lorecraft%2Fmotion-mcp)](https://www.npmjs.com/package/@lorecraft/motion-mcp)
+[![npm version](https://img.shields.io/npm/v/fidgetcoding-motion-mcp)](https://www.npmjs.com/package/fidgetcoding-motion-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green)](https://modelcontextprotocol.io)
@@ -130,7 +130,7 @@ Until then, this is here.
 | Sync trigger (Google/Outlook) | 🟢 **✅ Yes** | ✅ Yes | ❌ No | ❌ No |
 | Task read (public API) | 🟢 **✅ Yes** | ✅ Yes | ✅ Yes | ❌ No |
 | Auto-scheduling integration | 🟢 **✅ Works** (events you create respect Motion's engine) | ✅ Yes | Partial (tasks only) | ❌ No |
-| One-command install | 🟢 **✅ Yes** (`claude mcp add motion -- npx -y @lorecraft/motion-mcp`) | N/A | N/A | N/A |
+| One-command install | 🟢 **✅ Yes** (`claude mcp add motion -- npx -y fidgetcoding-motion-mcp`) | N/A | N/A | N/A |
 | Works with raw Motion subscription | 🟢 **✅ Yes** (standard Motion plan, no extra tier required) | ✅ Yes | ✅ Yes | N/A |
 | Open source / MIT | 🟢 **✅ Yes** | ❌ Proprietary | N/A | N/A |
 
@@ -145,7 +145,7 @@ The tradeoff is honest: this MCP requires a few extra setup steps because it aut
 One command:
 
 ```bash
-claude mcp add motion -- npx -y @lorecraft/motion-mcp
+claude mcp add motion -- npx -y fidgetcoding-motion-mcp
 ```
 
 Then configure credentials (see [Configuration](#configuration)) and restart Claude Code.
@@ -292,7 +292,7 @@ MOTION_TIMEZONE=America/New_York
   "mcpServers": {
     "motion": {
       "command": "npx",
-      "args": ["-y", "@lorecraft/motion-mcp"],
+      "args": ["-y", "fidgetcoding-motion-mcp"],
       "env": {
         "MOTION_API_KEY": "your_motion_api_key_here",
         "FIREBASE_API_KEY": "your_firebase_api_key_here",

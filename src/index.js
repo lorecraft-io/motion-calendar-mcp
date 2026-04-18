@@ -31,7 +31,7 @@ const _missingVars = Object.entries(_requiredVars).filter(([, v]) => !v).map(([k
 if (_missingVars.length > 0) {
   console.error(
     `Missing required environment variables: ${_missingVars.join(", ")}\n` +
-    `Run "npx @lorecraft/motion-mcp setup" or see .env.example for details.`
+    `Run "npx fidgetcoding-motion-mcp setup" or see .env.example for details.`
   );
   process.exit(1);
 }

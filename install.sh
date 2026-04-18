@@ -37,7 +37,7 @@ step()    { echo -e "\n${CYAN}${BOLD}── Step $1: $2 ──${NC}"; }
 ENV_DIR="$HOME/.motion-mcp"
 ENV_FILE="$ENV_DIR/.env"
 MCP_NAME="motion"
-NPX_CMD="npx -y @lorecraft/motion-mcp"
+NPX_CMD="npx -y fidgetcoding-motion-mcp"
 
 # ── Banner ──────────────────────────────────────────────────
 echo ""
